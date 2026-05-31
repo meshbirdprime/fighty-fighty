@@ -1,0 +1,37 @@
+[gd_scene load_steps=2 format=3 uid="uid://cjbupnw2f684m"]
+
+[ext_resource type="Script" path="res://scripts/Fighter.gd" id="1_fighter"]
+
+[node name="Fighter" type="Node2D"]
+script = ExtResource("1_fighter")
+
+[node name="Shadow" type="Polygon2D" parent="."]
+position = Vector2(0, 0)
+color = Color(0, 0, 0, 0.35)
+polygon = PackedVector2Array(-56, 0, -38, -8, 38, -8, 56, 0, 38, 8, -38, 8)
+
+[node name="Body" type="Polygon2D" parent="."]
+position = Vector2(0, -64)
+color = Color(0.15, 0.8, 1, 1)
+polygon = PackedVector2Array(-34, -18, -20, -92, 18, -100, 36, -18, 16, 0, -18, 0)
+
+[node name="Head" type="Polygon2D" parent="."]
+position = Vector2(0, -176)
+color = Color(0.47, 0.94, 1, 1)
+polygon = PackedVector2Array(-28, -8, -16, -32, 12, -36, 30, -12, 18, 14, -14, 16)
+
+[node name="Arm" type="Line2D" parent="."]
+width = 13.0
+default_color = Color(0.68, 0.96, 1, 1)
+begin_cap_mode = 2
+end_cap_mode = 2
+points = PackedVector2Array(12, -74, 42, -48)
+
+[node name="NameLabel" type="Label" parent="."]
+offset_left = -86.0
+offset_top = -238.0
+offset_right = 86.0
+offset_bottom = -210.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "Fighter"
