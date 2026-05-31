@@ -25,8 +25,10 @@ var arena_bounds := Vector2(90.0, 1190.0)
 var enabled := false
 var combo_count := 0
 var combo_timer := 0.0
+var current_move_axis := 0.0
 
 var _rng := RandomNumberGenerator.new()
+var _anim_time := 0.0
 var _attack_cooldown := 0.0
 var _block_timer := 0.0
 var _dodge_timer := 0.0
@@ -79,6 +81,8 @@ func reset_fight(start_position: Vector2, new_facing: int) -> void:
 	meter = 0.0
 	combo_count = 0
 	combo_timer = 0.0
+	current_move_axis = 0.0
+	_anim_time = _rng.randf_range(0.0, TAU)
 	velocity = Vector2.ZERO
 	_attack_cooldown = 0.0
 	_block_timer = 0.0
@@ -94,6 +98,7 @@ func _physics_process(delta: float) -> void:
 	if not enabled:
 		return
 
+	_anim_time += delta
 	_attack_cooldown = maxf(_attack_cooldown - delta, 0.0)
 	_block_timer = maxf(_block_timer - delta, 0.0)
 	_dodge_timer = maxf(_dodge_timer - delta, 0.0)
@@ -112,6 +117,7 @@ func _physics_process(delta: float) -> void:
 	var move_axis := 0.0
 	if _stun_timer <= 0.0:
 		move_axis = _cpu_axis(delta) if is_cpu else _player_axis()
+	current_move_axis = move_axis
 
 	velocity.x = move_axis * WALK_SPEED
 	if _dodge_timer > 0.0:
@@ -236,6 +242,12 @@ func _update_pose() -> void:
 	var heavy_windup := _attack_cooldown > 0.5
 	var punching := _attack_cooldown > 0.18
 	var jab_extend := _attack_cooldown > 0.22 and _attack_cooldown <= 0.5
+	var walking := absf(current_move_axis) > 0.08 and not blocking and not dodging and not punching and _stun_timer <= 0.0
+	var idle := not walking and not blocking and not dodging and not punching and _stun_timer <= 0.0
+	var idle_phase := sin(_anim_time * 4.2)
+	var idle_phase_fast := sin(_anim_time * 8.4)
+	var walk_phase := sin(_anim_time * 13.0)
+	var walk_step := absf(walk_phase)
 
 	var body_color := Color(0.15, 0.8, 1.0)
 	var arm_color := Color(0.2, 0.88, 1.0)
@@ -281,7 +293,31 @@ func _update_pose() -> void:
 	front_leg.position = Vector2(24, -50)
 	back_leg.position = Vector2(-20, -50)
 
-	if blocking:
+	if idle:
+		character_sprite.position = Vector2(idle_phase_fast * 2.0, -196.0 + idle_phase * 4.5)
+		character_sprite.scale = Vector2(0.38 + idle_phase * 0.004, 0.38 - idle_phase * 0.004)
+		character_sprite.rotation = idle_phase * 0.012
+		body.position.y += idle_phase * 2.0
+		head.position.y += idle_phase * 3.0
+		front_arm.position.y += idle_phase * 3.0
+		front_fist.position.y += idle_phase * 3.5
+		guard_fist.position.y -= idle_phase * 2.0
+	elif walking:
+		var travel_lean := clampf(current_move_axis * facing, -1.0, 1.0)
+		character_sprite.position = Vector2(travel_lean * 14.0 + walk_phase * 4.0, -196.0 + walk_step * 9.0)
+		character_sprite.scale = Vector2(0.385 + walk_step * 0.012, 0.37 - walk_step * 0.006)
+		character_sprite.rotation = travel_lean * 0.055 + walk_phase * 0.018
+		body.position.x += travel_lean * 8.0
+		body.position.y += walk_step * 3.0
+		head.position.x += travel_lean * 6.0
+		front_arm.position.x += walk_phase * 8.0
+		back_arm.position.x -= walk_phase * 8.0
+		front_fist.position.x += walk_phase * 10.0
+		guard_fist.position.x -= walk_phase * 7.0
+		front_leg.position.x += walk_phase * 13.0
+		back_leg.position.x -= walk_phase * 13.0
+		rotation = lerpf(rotation, travel_lean * 0.035, 0.3)
+	elif blocking:
 		character_sprite.position = Vector2(-14, -192)
 		character_sprite.scale = Vector2(0.36, 0.39)
 		front_arm.position = Vector2(18, -156)
@@ -339,5 +375,6 @@ func _update_pose() -> void:
 	if _flash_timer > 0.0:
 		character_sprite.modulate = Color(1.45, 1.45, 1.45, 1.0)
 
-	shadow.scale.x = 1.0 + absf(velocity.x) / 1300.0
-	shadow.scale.y = 1.0 - minf(absf(velocity.x) / 2500.0, 0.18)
+	var shadow_motion := walk_step if walking else absf(idle_phase) * 0.12
+	shadow.scale.x = 1.0 + absf(velocity.x) / 1300.0 + shadow_motion * 0.12
+	shadow.scale.y = 1.0 - minf(absf(velocity.x) / 2500.0, 0.18) - shadow_motion * 0.05
