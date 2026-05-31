@@ -22,17 +22,17 @@ Then press Play. The main scene is already set to `res://scenes/Main.tscn`.
 
 PS4 controller:
 - Left stick or D-pad: move
-- Cross: attack / confirm
-- Square: block
-- Circle: dodge
-- Triangle: special / random name on title screen
+- Cross: jab / confirm
+- Square: guard
+- Circle: backstep
+- Triangle: power punch / random name on title screen
 - Options: pause / start
 
 Keyboard:
 - A/D or arrows: move
-- J or Space: attack
-- K: block
-- L or Shift: dodge
-- I: special
+- J or Space: jab
+- K: guard
+- L or Shift: backstep
+- I: power punch
 - Enter: confirm
 - Escape or P: pause

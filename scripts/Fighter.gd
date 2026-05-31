@@ -8,8 +8,8 @@ const FLOOR_Y := 545.0
 const WALK_SPEED := 390.0
 const DODGE_SPEED := 720.0
 const GRAVITY := 1800.0
-const ATTACK_RANGE := 112.0
-const SPECIAL_RANGE := 155.0
+const ATTACK_RANGE := 132.0
+const SPECIAL_RANGE := 188.0
 
 var fighter_name := "Fighter"
 var is_cpu := false
@@ -33,7 +33,14 @@ var _cpu_action := "idle"
 
 @onready var body: Polygon2D = $Body
 @onready var head: Polygon2D = $Head
-@onready var arm: Line2D = $Arm
+@onready var front_arm: Polygon2D = $FrontArm
+@onready var front_fist: Polygon2D = $FrontFist
+@onready var guard_fist: Polygon2D = $GuardFist
+@onready var back_arm: Polygon2D = $BackArm
+@onready var front_leg: Polygon2D = $FrontLeg
+@onready var back_leg: Polygon2D = $BackLeg
+@onready var chest_glow: Line2D = $ChestGlow
+@onready var belt: Polygon2D = $Belt
 @onready var name_label: Label = $NameLabel
 @onready var shadow: Polygon2D = $Shadow
 
@@ -49,7 +56,9 @@ func configure(new_name: String, cpu: bool, accent: Color) -> void:
 		name_label.text = fighter_name
 		body.color = accent
 		head.color = accent.lightened(0.18)
-		arm.default_color = accent.lightened(0.35)
+		front_arm.color = accent.lightened(0.18)
+		back_arm.color = accent.darkened(0.24)
+		chest_glow.default_color = accent.lightened(0.65)
 
 
 func reset_fight(start_position: Vector2, new_facing: int) -> void:
@@ -127,7 +136,7 @@ func attack(heavy: bool) -> void:
 		meter -= 40.0
 
 	var reach := SPECIAL_RANGE if heavy else ATTACK_RANGE
-	var damage := 22 if heavy else 10
+	var damage := 26 if heavy else 9
 	var target_delta := opponent.global_position.x - global_position.x if opponent else 9999.0
 	if opponent and absf(target_delta) <= reach and (1 if target_delta >= 0.0 else -1) == facing:
 		opponent.take_hit(damage, heavy, global_position + Vector2(facing * reach, -75.0))
@@ -207,29 +216,90 @@ func _cpu_combat(_delta: float) -> void:
 func _update_pose() -> void:
 	var blocking := _block_timer > 0.0
 	var dodging := _dodge_timer > 0.0
-	var attacking := _attack_cooldown > 0.24
+	var heavy_windup := _attack_cooldown > 0.5
+	var punching := _attack_cooldown > 0.18
+	var jab_extend := _attack_cooldown > 0.22 and _attack_cooldown <= 0.5
 
-	body.color.a = 0.96
-	head.color.a = 0.96
+	var body_color := Color(0.15, 0.8, 1.0)
+	var arm_color := Color(0.2, 0.88, 1.0)
+	var dark_color := Color(0.07, 0.17, 0.28)
+	var glove_color := Color(1.0, 0.96, 0.74)
+	if is_cpu:
+		body_color = Color(1.0, 0.23, 0.35)
+		arm_color = Color(1.0, 0.34, 0.42)
+		dark_color = Color(0.34, 0.05, 0.09)
+		glove_color = Color(0.12, 0.12, 0.14)
+
 	if _flash_timer > 0.0:
 		body.color = Color.WHITE
 		head.color = Color.WHITE
-	elif is_cpu:
-		body.color = Color(1.0, 0.23, 0.35)
-		head.color = Color(1.0, 0.45, 0.5)
+		front_arm.color = Color.WHITE
+		front_fist.color = Color.WHITE
 	else:
-		body.color = Color(0.15, 0.8, 1.0)
-		head.color = Color(0.47, 0.94, 1.0)
+		body.color = body_color
+		head.color = body_color.lightened(0.28)
+		front_arm.color = arm_color
+		back_arm.color = dark_color.lightened(0.18)
+		front_fist.color = glove_color
+		guard_fist.color = glove_color.darkened(0.08)
 
-	var arm_start := Vector2(12, -74)
-	var arm_end := Vector2(86 if attacking else 42, -82 if attacking else -48)
+	front_leg.color = dark_color.lightened(0.12)
+	back_leg.color = dark_color.darkened(0.08)
+	belt.color = Color(0.018, 0.022, 0.035)
+	chest_glow.default_color = Color(1.0, 1.0, 1.0, 0.42)
+
+	body.position = Vector2(0, -105)
+	head.position = Vector2(7, -198)
+	front_arm.position = Vector2(28, -142)
+	front_arm.rotation = 0.0
+	front_fist.position = Vector2(74, -104)
+	front_fist.rotation = 0.0
+	guard_fist.position = Vector2(38, -166)
+	guard_fist.rotation = 0.0
+	back_arm.position = Vector2(-28, -138)
+	front_leg.position = Vector2(24, -50)
+	back_leg.position = Vector2(-20, -50)
+
 	if blocking:
-		arm_end = Vector2(34, -110)
+		front_arm.position = Vector2(18, -156)
+		front_arm.rotation = -0.72
+		front_fist.position = Vector2(24, -174)
+		guard_fist.position = Vector2(50, -156)
+		body.position.x = -6
 	elif dodging:
-		arm_end = Vector2(-20, -50)
+		body.position.x = -18
+		head.position.x = -8
+		front_arm.position = Vector2(10, -132)
+		front_fist.position = Vector2(38, -98)
+		guard_fist.position = Vector2(-18, -142)
 		rotation = -0.12 * facing
+	elif heavy_windup:
+		body.position.x = -12
+		front_arm.position = Vector2(2, -148)
+		front_arm.rotation = -1.25
+		front_fist.position = Vector2(-20, -178)
+		guard_fist.position = Vector2(50, -148)
+		rotation = lerpf(rotation, -0.04 * facing, 0.25)
+	elif jab_extend:
+		body.position.x = 10
+		head.position.x = 18
+		front_arm.position = Vector2(36, -146)
+		front_arm.rotation = -0.14
+		front_fist.position = Vector2(128, -122)
+		front_fist.rotation = 0.08
+		guard_fist.position = Vector2(30, -164)
+		rotation = lerpf(rotation, 0.05 * facing, 0.35)
+	elif punching:
+		body.position.x = 18
+		head.position.x = 23
+		front_arm.position = Vector2(48, -150)
+		front_arm.rotation = -0.02
+		front_fist.position = Vector2(168, -130)
+		front_fist.rotation = 0.05
+		guard_fist.position = Vector2(28, -166)
+		rotation = lerpf(rotation, 0.08 * facing, 0.45)
 	else:
 		rotation = lerpf(rotation, 0.0, 0.25)
 
-	arm.points = PackedVector2Array([arm_start, arm_end])
 	shadow.scale.x = 1.0 + absf(velocity.x) / 1300.0
+	shadow.scale.y = 1.0 - minf(absf(velocity.x) / 2500.0, 0.18)

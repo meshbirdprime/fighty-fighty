@@ -40,7 +40,7 @@ func _process(delta: float) -> void:
 		health_player.value = player.health
 		health_cpu.value = cpu.health
 		meter_player.value = player.meter
-		status_label.text = "Cross: attack   Square: block   Circle: dodge   Triangle: special"
+		status_label.text = "Cross: jab   Triangle: power punch   Square: guard   Circle: backstep"
 		if Input.is_action_just_pressed("pause"):
 			_set_paused(true)
 	elif state == GameState.PAUSED and Input.is_action_just_pressed("pause"):
@@ -99,29 +99,46 @@ func _build_arena() -> void:
 	camera.make_current()
 
 	var sky := ColorRect.new()
-	sky.color = Color(0.04, 0.035, 0.08)
+	sky.color = Color(0.025, 0.025, 0.04)
 	sky.size = Vector2(1280, 720)
 	add_child(sky)
 
 	for i in 11:
 		var stripe := ColorRect.new()
-		stripe.color = Color(0.04 + i * 0.01, 0.03, 0.09 + i * 0.018, 0.55)
+		stripe.color = Color(0.025 + i * 0.006, 0.03 + i * 0.004, 0.055 + i * 0.012, 0.5)
 		stripe.position = Vector2(i * 128 - 80, 0)
 		stripe.size = Vector2(58, 720)
 		stripe.rotation = -0.18
 		add_child(stripe)
 
-	var moon := Polygon2D.new()
-	moon.polygon = PackedVector2Array([Vector2(0, -80), Vector2(70, -35), Vector2(55, 45), Vector2(-20, 85), Vector2(-75, 20)])
-	moon.color = Color(0.2, 0.95, 1.0, 0.2)
-	moon.position = Vector2(1030, 150)
-	add_child(moon)
+	for side in [-1, 1]:
+		var light := Polygon2D.new()
+		light.polygon = PackedVector2Array([Vector2(-18, 0), Vector2(18, 0), Vector2(170 * side, 395), Vector2(-170 * side, 395)])
+		light.color = Color(1.0, 0.82, 0.25, 0.12)
+		light.position = Vector2(640 + side * 320, 58)
+		add_child(light)
+
+	var screen := ColorRect.new()
+	screen.color = Color(0.005, 0.008, 0.016)
+	screen.position = Vector2(330, 105)
+	screen.size = Vector2(620, 110)
+	add_child(screen)
+
+	var screen_text := _label("FIGHTY FIGHTY", 46, Vector2(330, 116), Vector2(620, 78), HORIZONTAL_ALIGNMENT_CENTER)
+	screen_text.add_theme_color_override("font_color", Color(1.0, 0.82, 0.2))
+	add_child(screen_text)
 
 	var floor := ColorRect.new()
-	floor.color = Color(0.09, 0.095, 0.12)
+	floor.color = Color(0.075, 0.08, 0.09)
 	floor.position = Vector2(0, 545)
 	floor.size = Vector2(1280, 175)
 	add_child(floor)
+
+	var stage_lip := ColorRect.new()
+	stage_lip.color = Color(1.0, 0.82, 0.25, 0.85)
+	stage_lip.position = Vector2(0, 538)
+	stage_lip.size = Vector2(1280, 7)
+	add_child(stage_lip)
 
 	for x in range(0, 1280, 80):
 		var line := Line2D.new()
@@ -195,11 +212,11 @@ func _build_fight_hud() -> void:
 	var cpu_label := _label("CPU BRUISER", 24, Vector2(920, 26), Vector2(310, 28), HORIZONTAL_ALIGNMENT_RIGHT)
 	fight_layer.add_child(cpu_label)
 
-	health_player = _bar(Vector2(48, 65), Vector2(380, 26), Color(0.0, 0.85, 1.0))
+	health_player = _bar(Vector2(48, 65), Vector2(430, 30), Color(0.0, 0.85, 1.0))
 	fight_layer.add_child(health_player)
-	health_cpu = _bar(Vector2(852, 65), Vector2(380, 26), Color(1.0, 0.18, 0.36))
+	health_cpu = _bar(Vector2(802, 65), Vector2(430, 30), Color(1.0, 0.18, 0.36))
 	fight_layer.add_child(health_cpu)
-	meter_player = _bar(Vector2(48, 100), Vector2(240, 16), Color(1.0, 0.82, 0.18))
+	meter_player = _bar(Vector2(48, 104), Vector2(260, 18), Color(1.0, 0.82, 0.18))
 	meter_player.max_value = 100
 	fight_layer.add_child(meter_player)
 
@@ -273,12 +290,27 @@ func _set_paused(paused: bool) -> void:
 
 
 func _on_hit(_damage: int, world_position: Vector2, heavy: bool) -> void:
-	shake_time = 0.16 if heavy else 0.08
-	shake_strength = 12.0 if heavy else 6.0
+	shake_time = 0.2 if heavy else 0.1
+	shake_strength = 18.0 if heavy else 7.0
+
+	var burst := Polygon2D.new()
+	burst.position = world_position
+	burst.color = Color(1.0, 0.85, 0.18, 0.88) if heavy else Color(0.68, 0.95, 1.0, 0.8)
+	burst.polygon = PackedVector2Array([
+		Vector2(0, -44), Vector2(14, -12), Vector2(56, -18), Vector2(22, 8),
+		Vector2(36, 44), Vector2(0, 24), Vector2(-36, 44), Vector2(-22, 8),
+		Vector2(-56, -18), Vector2(-14, -12)
+	])
+	add_child(burst)
+	var burst_tween := create_tween()
+	burst_tween.tween_property(burst, "scale", Vector2(1.45, 1.45), 0.12)
+	burst_tween.parallel().tween_property(burst, "modulate:a", 0.0, 0.16)
+	burst_tween.tween_callback(burst.queue_free)
+
 	var spark := Label.new()
-	spark.text = "BOOM" if heavy else "HIT"
-	spark.position = world_position - Vector2(35, 55)
-	spark.add_theme_font_size_override("font_size", 34 if heavy else 24)
+	spark.text = "CRUSH!" if heavy else "JAB!"
+	spark.position = world_position - Vector2(48, 70)
+	spark.add_theme_font_size_override("font_size", 42 if heavy else 28)
 	spark.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2) if heavy else Color.WHITE)
 	add_child(spark)
 	var tween := create_tween()
