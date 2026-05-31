@@ -4,7 +4,19 @@ A compact Godot 4 arcade fighting prototype.
 
 ## Run
 
-Open this folder in Godot 4.x and run the main scene.
+This is a Godot 4.x project. The project file is:
+
+`project.godot`
+
+On this PC, double-click:
+
+`open_in_godot.bat`
+
+Or open Godot 4.x manually, choose **Import**, and select:
+
+`C:\Users\Alex lee\fighty-fighty\project.godot`
+
+Then press Play. The main scene is already set to `res://scenes/Main.tscn`.
 
 ## Controls
 
