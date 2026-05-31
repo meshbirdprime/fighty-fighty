@@ -10,6 +10,8 @@ const DODGE_SPEED := 720.0
 const GRAVITY := 1800.0
 const ATTACK_RANGE := 132.0
 const SPECIAL_RANGE := 188.0
+const PLAYER_TEXTURE := preload("res://assets/fighters/player_blue.png")
+const CPU_TEXTURE := preload("res://assets/fighters/cpu_red.png")
 
 var fighter_name := "Fighter"
 var is_cpu := false
@@ -21,6 +23,8 @@ var velocity := Vector2.ZERO
 var opponent: Fighter
 var arena_bounds := Vector2(90.0, 1190.0)
 var enabled := false
+var combo_count := 0
+var combo_timer := 0.0
 
 var _rng := RandomNumberGenerator.new()
 var _attack_cooldown := 0.0
@@ -31,6 +35,7 @@ var _flash_timer := 0.0
 var _cpu_think_timer := 0.0
 var _cpu_action := "idle"
 
+@onready var character_sprite: Sprite2D = $CharacterSprite
 @onready var body: Polygon2D = $Body
 @onready var head: Polygon2D = $Head
 @onready var front_arm: Polygon2D = $FrontArm
@@ -47,6 +52,10 @@ var _cpu_action := "idle"
 func _ready() -> void:
 	_rng.randomize()
 	name_label.text = fighter_name
+	character_sprite.texture = CPU_TEXTURE if is_cpu else PLAYER_TEXTURE
+	character_sprite.centered = true
+	character_sprite.position = Vector2(0, -196)
+	character_sprite.scale = Vector2(0.38, 0.38)
 
 
 func configure(new_name: String, cpu: bool, accent: Color) -> void:
@@ -54,6 +63,7 @@ func configure(new_name: String, cpu: bool, accent: Color) -> void:
 	is_cpu = cpu
 	if is_inside_tree():
 		name_label.text = fighter_name
+		character_sprite.texture = CPU_TEXTURE if is_cpu else PLAYER_TEXTURE
 		body.color = accent
 		head.color = accent.lightened(0.18)
 		front_arm.color = accent.lightened(0.18)
@@ -67,6 +77,8 @@ func reset_fight(start_position: Vector2, new_facing: int) -> void:
 	scale.x = float(facing)
 	health = max_health
 	meter = 0.0
+	combo_count = 0
+	combo_timer = 0.0
 	velocity = Vector2.ZERO
 	_attack_cooldown = 0.0
 	_block_timer = 0.0
@@ -87,6 +99,9 @@ func _physics_process(delta: float) -> void:
 	_dodge_timer = maxf(_dodge_timer - delta, 0.0)
 	_stun_timer = maxf(_stun_timer - delta, 0.0)
 	_flash_timer = maxf(_flash_timer - delta, 0.0)
+	combo_timer = maxf(combo_timer - delta, 0.0)
+	if combo_timer <= 0.0:
+		combo_count = 0
 
 	if opponent:
 		var target_direction := opponent.global_position.x - global_position.x
@@ -140,6 +155,8 @@ func attack(heavy: bool) -> void:
 	var target_delta := opponent.global_position.x - global_position.x if opponent else 9999.0
 	if opponent and absf(target_delta) <= reach and (1 if target_delta >= 0.0 else -1) == facing:
 		opponent.take_hit(damage, heavy, global_position + Vector2(facing * reach, -75.0))
+		combo_count += 1
+		combo_timer = 1.25
 		landed_hit.emit(damage, global_position + Vector2(facing * reach, -75.0), heavy)
 
 
@@ -250,6 +267,10 @@ func _update_pose() -> void:
 
 	body.position = Vector2(0, -105)
 	head.position = Vector2(7, -198)
+	character_sprite.position = Vector2(0, -196)
+	character_sprite.scale = Vector2(0.38, 0.38)
+	character_sprite.rotation = 0.0
+	character_sprite.modulate = Color.WHITE
 	front_arm.position = Vector2(28, -142)
 	front_arm.rotation = 0.0
 	front_fist.position = Vector2(74, -104)
@@ -261,12 +282,17 @@ func _update_pose() -> void:
 	back_leg.position = Vector2(-20, -50)
 
 	if blocking:
+		character_sprite.position = Vector2(-14, -192)
+		character_sprite.scale = Vector2(0.36, 0.39)
 		front_arm.position = Vector2(18, -156)
 		front_arm.rotation = -0.72
 		front_fist.position = Vector2(24, -174)
 		guard_fist.position = Vector2(50, -156)
 		body.position.x = -6
 	elif dodging:
+		character_sprite.position = Vector2(-30, -188)
+		character_sprite.scale = Vector2(0.36, 0.37)
+		character_sprite.rotation = -0.05
 		body.position.x = -18
 		head.position.x = -8
 		front_arm.position = Vector2(10, -132)
@@ -274,6 +300,9 @@ func _update_pose() -> void:
 		guard_fist.position = Vector2(-18, -142)
 		rotation = -0.12 * facing
 	elif heavy_windup:
+		character_sprite.position = Vector2(-24, -198)
+		character_sprite.scale = Vector2(0.39, 0.38)
+		character_sprite.rotation = -0.04
 		body.position.x = -12
 		front_arm.position = Vector2(2, -148)
 		front_arm.rotation = -1.25
@@ -281,6 +310,9 @@ func _update_pose() -> void:
 		guard_fist.position = Vector2(50, -148)
 		rotation = lerpf(rotation, -0.04 * facing, 0.25)
 	elif jab_extend:
+		character_sprite.position = Vector2(16, -196)
+		character_sprite.scale = Vector2(0.4, 0.37)
+		character_sprite.rotation = 0.03
 		body.position.x = 10
 		head.position.x = 18
 		front_arm.position = Vector2(36, -146)
@@ -290,6 +322,9 @@ func _update_pose() -> void:
 		guard_fist.position = Vector2(30, -164)
 		rotation = lerpf(rotation, 0.05 * facing, 0.35)
 	elif punching:
+		character_sprite.position = Vector2(36, -196)
+		character_sprite.scale = Vector2(0.42, 0.36)
+		character_sprite.rotation = 0.05
 		body.position.x = 18
 		head.position.x = 23
 		front_arm.position = Vector2(48, -150)
@@ -300,6 +335,9 @@ func _update_pose() -> void:
 		rotation = lerpf(rotation, 0.08 * facing, 0.45)
 	else:
 		rotation = lerpf(rotation, 0.0, 0.25)
+
+	if _flash_timer > 0.0:
+		character_sprite.modulate = Color(1.45, 1.45, 1.45, 1.0)
 
 	shadow.scale.x = 1.0 + absf(velocity.x) / 1300.0
 	shadow.scale.y = 1.0 - minf(absf(velocity.x) / 2500.0, 0.18)

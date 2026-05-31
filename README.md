@@ -2,6 +2,8 @@
 
 A compact Godot 4 arcade fighting prototype.
 
+This version uses original generated fighter art, punch-focused combat, round scoring, a timer, combo feedback, and PS4-first controls.
+
 ## Run
 
 This is a Godot 4.x project. The project file is:

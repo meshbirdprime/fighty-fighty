@@ -1,5 +1,6 @@
 # Godot generated files
 .godot/
+tmp/
 
 # Godot exports
 export.cfg

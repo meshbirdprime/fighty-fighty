@@ -1,15 +1,21 @@
 extends Node2D
 
-enum GameState { MENU, FIGHT, OVER, PAUSED }
+enum GameState { MENU, FIGHT, ROUND_END, OVER, PAUSED }
 
 const FighterScene := preload("res://scenes/Fighter.tscn")
+const CONCEPT_TEXTURE := preload("res://assets/concept/fighters_concept.png")
 const FLOOR_Y := 545.0
+const ROUND_SECONDS := 60.0
 
 var state := GameState.MENU
 var player_name := "Player One"
 var winner_text := ""
 var shake_time := 0.0
 var shake_strength := 0.0
+var round_number := 1
+var player_rounds := 0
+var cpu_rounds := 0
+var round_time := ROUND_SECONDS
 
 var player: Node2D
 var cpu: Node2D
@@ -23,6 +29,9 @@ var health_cpu: ProgressBar
 var meter_player: ProgressBar
 var status_label: Label
 var prompt_label: Label
+var timer_label: Label
+var round_label: Label
+var combo_label: Label
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -37,10 +46,16 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if state == GameState.FIGHT:
+		round_time = maxf(round_time - delta, 0.0)
 		health_player.value = player.health
 		health_cpu.value = cpu.health
 		meter_player.value = player.meter
+		timer_label.text = "%02d" % int(ceil(round_time))
+		round_label.text = "ROUND %d    %d - %d" % [round_number, player_rounds, cpu_rounds]
+		combo_label.text = "%d HIT COMBO" % player.combo_count if player.combo_count >= 2 else ""
 		status_label.text = "Cross: jab   Triangle: power punch   Square: guard   Circle: backstep"
+		if round_time <= 0.0:
+			_finish_round(player if player.health >= cpu.health else cpu)
 		if Input.is_action_just_pressed("pause"):
 			_set_paused(true)
 	elif state == GameState.PAUSED and Input.is_action_just_pressed("pause"):
@@ -166,8 +181,8 @@ func _build_fighters() -> void:
 	cpu.opponent = player
 	player.landed_hit.connect(_on_hit)
 	cpu.landed_hit.connect(_on_hit)
-	player.defeated.connect(func() -> void: _finish_fight(cpu.fighter_name + " wins"))
-	cpu.defeated.connect(func() -> void: _finish_fight(player.fighter_name + " wins"))
+	player.defeated.connect(func() -> void: _finish_round(cpu))
+	cpu.defeated.connect(func() -> void: _finish_round(player))
 
 
 func _build_menu() -> void:
@@ -175,6 +190,15 @@ func _build_menu() -> void:
 	add_child(menu_layer)
 	var panel := _panel(Vector2(390, 155), Vector2(500, 350))
 	menu_layer.add_child(panel)
+
+	var concept := TextureRect.new()
+	concept.texture = CONCEPT_TEXTURE
+	concept.position = Vector2(20, 18)
+	concept.size = Vector2(460, 122)
+	concept.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	concept.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	concept.modulate = Color(1, 1, 1, 0.28)
+	panel.add_child(concept)
 
 	var title := _label("FIGHTY FIGHTY", 48, Vector2(0, 24), Vector2(500, 60), HORIZONTAL_ALIGNMENT_CENTER)
 	title.add_theme_color_override("font_color", Color(0.15, 0.9, 1.0))
@@ -197,7 +221,7 @@ func _build_menu() -> void:
 	prompt_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.25))
 	panel.add_child(prompt_label)
 
-	var controls := _label("PS4: Left stick or D-pad move, Cross attack, Square block, Circle dodge, Triangle special", 16, Vector2(46, 286), Vector2(410, 44), HORIZONTAL_ALIGNMENT_CENTER)
+	var controls := _label("PS4: Left stick or D-pad move, Cross jab, Square guard, Circle backstep, Triangle power punch", 16, Vector2(46, 286), Vector2(410, 44), HORIZONTAL_ALIGNMENT_CENTER)
 	controls.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	panel.add_child(controls)
 
@@ -219,6 +243,17 @@ func _build_fight_hud() -> void:
 	meter_player = _bar(Vector2(48, 104), Vector2(260, 18), Color(1.0, 0.82, 0.18))
 	meter_player.max_value = 100
 	fight_layer.add_child(meter_player)
+
+	timer_label = _label("60", 42, Vector2(588, 48), Vector2(104, 52), HORIZONTAL_ALIGNMENT_CENTER)
+	timer_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.18))
+	fight_layer.add_child(timer_label)
+
+	round_label = _label("ROUND 1    0 - 0", 20, Vector2(490, 102), Vector2(300, 28), HORIZONTAL_ALIGNMENT_CENTER)
+	fight_layer.add_child(round_label)
+
+	combo_label = _label("", 34, Vector2(70, 170), Vector2(280, 50), HORIZONTAL_ALIGNMENT_LEFT)
+	combo_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.18))
+	fight_layer.add_child(combo_label)
 
 	status_label = _label("", 18, Vector2(370, 645), Vector2(540, 32), HORIZONTAL_ALIGNMENT_CENTER)
 	status_label.add_theme_color_override("font_color", Color(0.88, 0.91, 0.96))
@@ -257,20 +292,59 @@ func _start_fight() -> void:
 		player_name = "Player One"
 	player.configure(player_name, false, Color(0.15, 0.8, 1.0))
 	fight_layer.get_node("PlayerName").text = player_name.to_upper()
-	player.reset_fight(Vector2(360, FLOOR_Y), 1)
-	cpu.reset_fight(Vector2(920, FLOOR_Y), -1)
-	player.visible = true
-	cpu.visible = true
-	health_player.max_value = player.max_health
-	health_cpu.max_value = cpu.max_health
+	player_rounds = 0
+	cpu_rounds = 0
+	round_number = 1
+	_start_round()
 	state = GameState.FIGHT
 	menu_layer.visible = false
 	fight_layer.visible = true
 	over_layer.visible = false
 
 
+func _start_round() -> void:
+	round_time = ROUND_SECONDS
+	combo_label.text = ""
+	status_label.text = ""
+	player.reset_fight(Vector2(350, FLOOR_Y), 1)
+	cpu.reset_fight(Vector2(930, FLOOR_Y), -1)
+	player.visible = true
+	cpu.visible = true
+	health_player.max_value = player.max_health
+	health_cpu.max_value = cpu.max_health
+	health_player.value = player.max_health
+	health_cpu.value = cpu.max_health
+	timer_label.text = "%02d" % int(ROUND_SECONDS)
+	round_label.text = "ROUND %d    %d - %d" % [round_number, player_rounds, cpu_rounds]
+
+
+func _finish_round(winner: Node2D) -> void:
+	if state == GameState.ROUND_END or state == GameState.OVER:
+		return
+	state = GameState.ROUND_END
+	player.enabled = false
+	cpu.enabled = false
+	if winner == player:
+		player_rounds += 1
+		status_label.text = "%s takes the round" % player.fighter_name
+	else:
+		cpu_rounds += 1
+		status_label.text = "CPU Bruiser takes the round"
+
+	if player_rounds >= 2:
+		_finish_fight(player.fighter_name + " wins")
+	elif cpu_rounds >= 2:
+		_finish_fight(cpu.fighter_name + " wins")
+	else:
+		round_number += 1
+		await get_tree().create_timer(1.6).timeout
+		if state == GameState.ROUND_END:
+			state = GameState.FIGHT
+			_start_round()
+
+
 func _finish_fight(text: String) -> void:
-	if state != GameState.FIGHT:
+	if state == GameState.OVER:
 		return
 	winner_text = text
 	state = GameState.OVER
