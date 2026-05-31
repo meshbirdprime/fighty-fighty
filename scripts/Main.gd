@@ -113,58 +113,125 @@ func _build_arena() -> void:
 	camera.make_current()
 
 	var sky := ColorRect.new()
-	sky.color = Color(0.13, 0.12, 0.105)
+	sky.color = Color(0.07, 0.064, 0.055)
 	sky.size = Vector2(1280, 720)
 	add_child(sky)
 
 	var back_wall := ColorRect.new()
-	back_wall.color = Color(0.23, 0.215, 0.185)
+	back_wall.color = Color(0.18, 0.165, 0.135)
 	back_wall.position = Vector2(0, 0)
 	back_wall.size = Vector2(1280, 545)
 	add_child(back_wall)
 
+	var wall_warmth := Polygon2D.new()
+	wall_warmth.polygon = PackedVector2Array([Vector2(260, 0), Vector2(1020, 0), Vector2(930, 545), Vector2(350, 545)])
+	wall_warmth.color = Color(0.42, 0.31, 0.18, 0.22)
+	add_child(wall_warmth)
+
 	for x in range(0, 1280, 160):
 		var panel_line := ColorRect.new()
-		panel_line.color = Color(0.11, 0.105, 0.095, 0.52)
+		panel_line.color = Color(0.065, 0.06, 0.052, 0.58)
 		panel_line.position = Vector2(x, 0)
 		panel_line.size = Vector2(3, 545)
 		add_child(panel_line)
 
 	for y in [132, 263, 394]:
 		var wall_line := ColorRect.new()
-		wall_line.color = Color(0.11, 0.105, 0.095, 0.45)
+		wall_line.color = Color(0.075, 0.068, 0.057, 0.5)
 		wall_line.position = Vector2(0, y)
 		wall_line.size = Vector2(1280, 3)
 		add_child(wall_line)
 
+	for x in [170, 365, 640, 915, 1110]:
+		var fixture_shadow := Polygon2D.new()
+		fixture_shadow.polygon = PackedVector2Array([Vector2(-42, 0), Vector2(42, 0), Vector2(82, 28), Vector2(-82, 28)])
+		fixture_shadow.color = Color(0.02, 0.018, 0.014, 0.32)
+		fixture_shadow.position = Vector2(x + 10, 55)
+		add_child(fixture_shadow)
+
+		var fixture := Polygon2D.new()
+		fixture.polygon = PackedVector2Array([Vector2(-46, -8), Vector2(46, -8), Vector2(34, 10), Vector2(-34, 10)])
+		fixture.color = Color(0.12, 0.105, 0.08)
+		fixture.position = Vector2(x, 48)
+		add_child(fixture)
+
+		var bulb := ColorRect.new()
+		bulb.color = Color(1.0, 0.76, 0.38, 0.88)
+		bulb.position = Vector2(x - 26, 55)
+		bulb.size = Vector2(52, 5)
+		add_child(bulb)
+
+	for light_data in [
+		[350.0, 58.0, 215.0, 492.0, 0.2],
+		[640.0, 42.0, 250.0, 520.0, 0.26],
+		[930.0, 58.0, 215.0, 492.0, 0.2]
+	]:
+		var cone := Polygon2D.new()
+		cone.polygon = PackedVector2Array([
+			Vector2(-34, 0),
+			Vector2(34, 0),
+			Vector2(light_data[2], light_data[3]),
+			Vector2(-light_data[2], light_data[3])
+		])
+		cone.color = Color(1.0, 0.72, 0.36, light_data[4])
+		cone.position = Vector2(light_data[0], light_data[1])
+		add_child(cone)
+
+	for light_data in [
+		[350.0, 612.0, 215.0, 46.0, 0.2],
+		[640.0, 606.0, 270.0, 58.0, 0.28],
+		[930.0, 612.0, 215.0, 46.0, 0.2]
+	]:
+		var pool := Polygon2D.new()
+		pool.polygon = _ellipse_polygon(Vector2.ZERO, light_data[2], light_data[3], 36)
+		pool.color = Color(1.0, 0.69, 0.34, light_data[4])
+		pool.position = Vector2(light_data[0], light_data[1])
+		add_child(pool)
+
+	var wall_shadow := Polygon2D.new()
+	wall_shadow.polygon = PackedVector2Array([Vector2(0, 425), Vector2(1280, 410), Vector2(1280, 545), Vector2(0, 545)])
+	wall_shadow.color = Color(0.035, 0.03, 0.025, 0.32)
+	add_child(wall_shadow)
+
 	for side in [-1, 1]:
 		var banner := Polygon2D.new()
 		banner.polygon = PackedVector2Array([Vector2(-78, -86), Vector2(78, -86), Vector2(58, 92), Vector2(0, 128), Vector2(-58, 92)])
-		banner.color = Color(0.1, 0.095, 0.085) if side < 0 else Color(0.42, 0.08, 0.06)
+		banner.color = Color(0.075, 0.07, 0.062) if side < 0 else Color(0.34, 0.065, 0.045)
 		banner.position = Vector2(240 if side < 0 else 1040, 205)
 		add_child(banner)
 
-		var light := Polygon2D.new()
-		light.polygon = PackedVector2Array([Vector2(-28, 0), Vector2(28, 0), Vector2(190 * side, 440), Vector2(-190 * side, 440)])
-		light.color = Color(1.0, 0.78, 0.43, 0.16)
-		light.position = Vector2(640 + side * 245, 18)
-		add_child(light)
+		var banner_shadow := Polygon2D.new()
+		banner_shadow.polygon = PackedVector2Array([Vector2(-82, -82), Vector2(88, -78), Vector2(78, 120), Vector2(12, 154), Vector2(-54, 118)])
+		banner_shadow.color = Color(0.02, 0.018, 0.014, 0.24)
+		banner_shadow.position = Vector2((240 if side < 0 else 1040) + 18, 216)
+		add_child(banner_shadow)
 
 	var screen := ColorRect.new()
-	screen.color = Color(0.055, 0.05, 0.043)
+	screen.color = Color(0.035, 0.032, 0.028)
 	screen.position = Vector2(365, 116)
 	screen.size = Vector2(550, 92)
 	add_child(screen)
+
+	var screen_glow := Polygon2D.new()
+	screen_glow.polygon = PackedVector2Array([Vector2(-45, -25), Vector2(595, -25), Vector2(650, 138), Vector2(-100, 138)])
+	screen_glow.color = Color(0.94, 0.68, 0.32, 0.12)
+	screen_glow.position = Vector2(365, 116)
+	add_child(screen_glow)
 
 	var screen_text := _label("BACKROOM BRAWL", 38, Vector2(365, 124), Vector2(550, 64), HORIZONTAL_ALIGNMENT_CENTER)
 	screen_text.add_theme_color_override("font_color", Color(0.94, 0.77, 0.45))
 	add_child(screen_text)
 
 	var floor := ColorRect.new()
-	floor.color = Color(0.155, 0.145, 0.13)
+	floor.color = Color(0.105, 0.097, 0.082)
 	floor.position = Vector2(0, 545)
 	floor.size = Vector2(1280, 175)
 	add_child(floor)
+
+	var floor_center := Polygon2D.new()
+	floor_center.polygon = PackedVector2Array([Vector2(230, 545), Vector2(1050, 545), Vector2(1215, 720), Vector2(65, 720)])
+	floor_center.color = Color(0.24, 0.205, 0.145, 0.28)
+	add_child(floor_center)
 
 	var stage_lip := ColorRect.new()
 	stage_lip.color = Color(0.055, 0.05, 0.044)
@@ -185,6 +252,22 @@ func _build_arena() -> void:
 		chalk.default_color = Color(0.68, 0.63, 0.52, 0.18)
 		chalk.points = PackedVector2Array([Vector2(125, y), Vector2(1155, y - 18)])
 		add_child(chalk)
+
+	var left_vignette := Polygon2D.new()
+	left_vignette.polygon = PackedVector2Array([Vector2(0, 0), Vector2(270, 0), Vector2(155, 720), Vector2(0, 720)])
+	left_vignette.color = Color(0.015, 0.013, 0.011, 0.48)
+	add_child(left_vignette)
+
+	var right_vignette := Polygon2D.new()
+	right_vignette.polygon = PackedVector2Array([Vector2(1010, 0), Vector2(1280, 0), Vector2(1280, 720), Vector2(1125, 720)])
+	right_vignette.color = Color(0.015, 0.013, 0.011, 0.48)
+	add_child(right_vignette)
+
+	var top_vignette := ColorRect.new()
+	top_vignette.color = Color(0.012, 0.01, 0.008, 0.36)
+	top_vignette.position = Vector2(0, 0)
+	top_vignette.size = Vector2(1280, 70)
+	add_child(top_vignette)
 
 
 func _build_fighters() -> void:
@@ -446,6 +529,14 @@ func _bar(pos: Vector2, node_size: Vector2, fill: Color) -> ProgressBar:
 	bar.add_theme_stylebox_override("background", bg)
 	bar.add_theme_stylebox_override("fill", fg)
 	return bar
+
+
+func _ellipse_polygon(center: Vector2, radius_x: float, radius_y: float, segments: int) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for i in segments:
+		var angle := TAU * float(i) / float(segments)
+		points.append(center + Vector2(cos(angle) * radius_x, sin(angle) * radius_y))
+	return points
 
 
 func _random_name() -> String:
