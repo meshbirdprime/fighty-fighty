@@ -10,8 +10,6 @@ const DODGE_SPEED := 720.0
 const GRAVITY := 1800.0
 const ATTACK_RANGE := 132.0
 const SPECIAL_RANGE := 188.0
-const PLAYER_TEXTURE := preload("res://assets/fighters/player_blue.png")
-const CPU_TEXTURE := preload("res://assets/fighters/cpu_red.png")
 
 var fighter_name := "Fighter"
 var is_cpu := false
@@ -46,6 +44,8 @@ var _cpu_action := "idle"
 @onready var back_arm: Polygon2D = $BackArm
 @onready var front_leg: Polygon2D = $FrontLeg
 @onready var back_leg: Polygon2D = $BackLeg
+@onready var front_foot: Polygon2D = $FrontFoot
+@onready var back_foot: Polygon2D = $BackFoot
 @onready var chest_glow: Line2D = $ChestGlow
 @onready var belt: Polygon2D = $Belt
 @onready var name_label: Label = $NameLabel
@@ -54,10 +54,8 @@ var _cpu_action := "idle"
 func _ready() -> void:
 	_rng.randomize()
 	name_label.text = fighter_name
-	character_sprite.texture = CPU_TEXTURE if is_cpu else PLAYER_TEXTURE
 	character_sprite.centered = true
-	character_sprite.position = Vector2(0, -196)
-	character_sprite.scale = Vector2(0.38, 0.38)
+	character_sprite.visible = false
 
 
 func configure(new_name: String, cpu: bool, accent: Color) -> void:
@@ -65,7 +63,6 @@ func configure(new_name: String, cpu: bool, accent: Color) -> void:
 	is_cpu = cpu
 	if is_inside_tree():
 		name_label.text = fighter_name
-		character_sprite.texture = CPU_TEXTURE if is_cpu else PLAYER_TEXTURE
 		body.color = accent
 		head.color = accent.lightened(0.18)
 		front_arm.color = accent.lightened(0.18)
@@ -249,15 +246,17 @@ func _update_pose() -> void:
 	var walk_phase := sin(_anim_time * 13.0)
 	var walk_step := absf(walk_phase)
 
-	var body_color := Color(0.15, 0.8, 1.0)
-	var arm_color := Color(0.2, 0.88, 1.0)
-	var dark_color := Color(0.07, 0.17, 0.28)
-	var glove_color := Color(1.0, 0.96, 0.74)
+	var body_color := Color(0.18, 0.32, 0.28)
+	var arm_color := Color(0.24, 0.42, 0.35)
+	var dark_color := Color(0.09, 0.12, 0.16)
+	var glove_color := Color(0.95, 0.92, 0.78)
+	var trim_color := Color(0.96, 0.75, 0.22)
 	if is_cpu:
-		body_color = Color(1.0, 0.23, 0.35)
-		arm_color = Color(1.0, 0.34, 0.42)
-		dark_color = Color(0.34, 0.05, 0.09)
-		glove_color = Color(0.12, 0.12, 0.14)
+		body_color = Color(0.5, 0.12, 0.08)
+		arm_color = Color(0.66, 0.18, 0.12)
+		dark_color = Color(0.13, 0.1, 0.09)
+		glove_color = Color(0.12, 0.12, 0.12)
+		trim_color = Color(0.92, 0.86, 0.72)
 
 	if _flash_timer > 0.0:
 		body.color = Color.WHITE
@@ -266,16 +265,18 @@ func _update_pose() -> void:
 		front_fist.color = Color.WHITE
 	else:
 		body.color = body_color
-		head.color = body_color.lightened(0.28)
+		head.color = Color(0.82, 0.58, 0.38) if not is_cpu else Color(0.62, 0.38, 0.25)
 		front_arm.color = arm_color
 		back_arm.color = dark_color.lightened(0.18)
 		front_fist.color = glove_color
 		guard_fist.color = glove_color.darkened(0.08)
 
-	front_leg.color = dark_color.lightened(0.12)
-	back_leg.color = dark_color.darkened(0.08)
-	belt.color = Color(0.018, 0.022, 0.035)
-	chest_glow.default_color = Color(1.0, 1.0, 1.0, 0.42)
+	front_leg.color = dark_color.lightened(0.16)
+	back_leg.color = dark_color.darkened(0.04)
+	front_foot.color = Color(0.018, 0.018, 0.018)
+	back_foot.color = Color(0.01, 0.01, 0.012)
+	belt.color = trim_color
+	chest_glow.default_color = Color(0.05, 0.045, 0.035, 0.72)
 
 	body.position = Vector2(0, -105)
 	head.position = Vector2(7, -198)
@@ -291,22 +292,26 @@ func _update_pose() -> void:
 	guard_fist.rotation = 0.0
 	back_arm.position = Vector2(-28, -138)
 	front_leg.position = Vector2(24, -50)
+	front_leg.rotation = 0.0
 	back_leg.position = Vector2(-20, -50)
+	back_leg.rotation = 0.0
+	front_foot.position = Vector2(28, 12)
+	front_foot.rotation = 0.0
+	back_foot.position = Vector2(-18, 10)
+	back_foot.rotation = 0.0
 
 	if idle:
-		character_sprite.position = Vector2(idle_phase_fast * 2.0, -196.0 + idle_phase * 4.5)
-		character_sprite.scale = Vector2(0.38 + idle_phase * 0.004, 0.38 - idle_phase * 0.004)
-		character_sprite.rotation = idle_phase * 0.012
 		body.position.y += idle_phase * 2.0
 		head.position.y += idle_phase * 3.0
 		front_arm.position.y += idle_phase * 3.0
 		front_fist.position.y += idle_phase * 3.5
 		guard_fist.position.y -= idle_phase * 2.0
+		front_leg.rotation = idle_phase * 0.025
+		back_leg.rotation = -idle_phase * 0.02
+		front_foot.position.x += idle_phase_fast * 1.2
+		back_foot.position.x -= idle_phase_fast * 0.9
 	elif walking:
 		var travel_lean := clampf(current_move_axis * facing, -1.0, 1.0)
-		character_sprite.position = Vector2(travel_lean * 14.0 + walk_phase * 4.0, -196.0 + walk_step * 9.0)
-		character_sprite.scale = Vector2(0.385 + walk_step * 0.012, 0.37 - walk_step * 0.006)
-		character_sprite.rotation = travel_lean * 0.055 + walk_phase * 0.018
 		body.position.x += travel_lean * 8.0
 		body.position.y += walk_step * 3.0
 		head.position.x += travel_lean * 6.0
@@ -314,41 +319,54 @@ func _update_pose() -> void:
 		back_arm.position.x -= walk_phase * 8.0
 		front_fist.position.x += walk_phase * 10.0
 		guard_fist.position.x -= walk_phase * 7.0
-		front_leg.position.x += walk_phase * 13.0
-		back_leg.position.x -= walk_phase * 13.0
+		front_leg.position.x += walk_phase * 18.0
+		front_leg.position.y += walk_step * 8.0
+		front_leg.rotation = walk_phase * 0.28
+		back_leg.position.x -= walk_phase * 18.0
+		back_leg.position.y += (1.0 - walk_step) * 8.0
+		back_leg.rotation = -walk_phase * 0.28
+		front_foot.position.x += walk_phase * 28.0
+		front_foot.position.y -= maxf(walk_phase, 0.0) * 8.0
+		front_foot.rotation = walk_phase * 0.18
+		back_foot.position.x -= walk_phase * 28.0
+		back_foot.position.y += minf(walk_phase, 0.0) * 8.0
+		back_foot.rotation = -walk_phase * 0.18
 		rotation = lerpf(rotation, travel_lean * 0.035, 0.3)
 	elif blocking:
-		character_sprite.position = Vector2(-14, -192)
-		character_sprite.scale = Vector2(0.36, 0.39)
 		front_arm.position = Vector2(18, -156)
 		front_arm.rotation = -0.72
 		front_fist.position = Vector2(24, -174)
 		guard_fist.position = Vector2(50, -156)
 		body.position.x = -6
+		front_leg.position.x = 14
+		front_leg.rotation = -0.12
+		back_leg.position.x = -30
+		back_leg.rotation = 0.08
 	elif dodging:
-		character_sprite.position = Vector2(-30, -188)
-		character_sprite.scale = Vector2(0.36, 0.37)
-		character_sprite.rotation = -0.05
 		body.position.x = -18
 		head.position.x = -8
 		front_arm.position = Vector2(10, -132)
 		front_fist.position = Vector2(38, -98)
 		guard_fist.position = Vector2(-18, -142)
+		front_leg.position.x = 4
+		front_leg.rotation = -0.3
+		back_leg.position.x = -42
+		back_leg.rotation = 0.18
+		front_foot.position.x = 5
+		back_foot.position.x = -50
 		rotation = -0.12 * facing
 	elif heavy_windup:
-		character_sprite.position = Vector2(-24, -198)
-		character_sprite.scale = Vector2(0.39, 0.38)
-		character_sprite.rotation = -0.04
 		body.position.x = -12
 		front_arm.position = Vector2(2, -148)
 		front_arm.rotation = -1.25
 		front_fist.position = Vector2(-20, -178)
 		guard_fist.position = Vector2(50, -148)
+		front_leg.position.x = 12
+		front_leg.rotation = -0.16
+		back_leg.position.x = -38
+		back_leg.rotation = 0.12
 		rotation = lerpf(rotation, -0.04 * facing, 0.25)
 	elif jab_extend:
-		character_sprite.position = Vector2(16, -196)
-		character_sprite.scale = Vector2(0.4, 0.37)
-		character_sprite.rotation = 0.03
 		body.position.x = 10
 		head.position.x = 18
 		front_arm.position = Vector2(36, -146)
@@ -356,11 +374,12 @@ func _update_pose() -> void:
 		front_fist.position = Vector2(128, -122)
 		front_fist.rotation = 0.08
 		guard_fist.position = Vector2(30, -164)
+		front_leg.position.x = 38
+		front_leg.rotation = 0.16
+		back_leg.position.x = -28
+		back_leg.rotation = -0.08
 		rotation = lerpf(rotation, 0.05 * facing, 0.35)
 	elif punching:
-		character_sprite.position = Vector2(36, -196)
-		character_sprite.scale = Vector2(0.42, 0.36)
-		character_sprite.rotation = 0.05
 		body.position.x = 18
 		head.position.x = 23
 		front_arm.position = Vector2(48, -150)
@@ -368,12 +387,13 @@ func _update_pose() -> void:
 		front_fist.position = Vector2(168, -130)
 		front_fist.rotation = 0.05
 		guard_fist.position = Vector2(28, -166)
+		front_leg.position.x = 44
+		front_leg.rotation = 0.22
+		back_leg.position.x = -22
+		back_leg.rotation = -0.12
 		rotation = lerpf(rotation, 0.08 * facing, 0.45)
 	else:
 		rotation = lerpf(rotation, 0.0, 0.25)
-
-	if _flash_timer > 0.0:
-		character_sprite.modulate = Color(1.45, 1.45, 1.45, 1.0)
 
 	var shadow_motion := walk_step if walking else absf(idle_phase) * 0.12
 	shadow.scale.x = 1.0 + absf(velocity.x) / 1300.0 + shadow_motion * 0.12

@@ -2,7 +2,7 @@
 
 A compact Godot 4 arcade fighting prototype.
 
-This version uses original generated fighter art, punch-focused combat, round scoring, a timer, combo feedback, and PS4-first controls.
+This version uses in-engine graphic fighters with separated limbs, punch-focused combat, round scoring, a timer, combo feedback, and PS4-first controls.
 
 ## Run
 

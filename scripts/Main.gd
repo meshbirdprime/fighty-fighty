@@ -3,7 +3,6 @@ extends Node2D
 enum GameState { MENU, FIGHT, ROUND_END, OVER, PAUSED }
 
 const FighterScene := preload("res://scenes/Fighter.tscn")
-const CONCEPT_TEXTURE := preload("res://assets/concept/fighters_concept.png")
 const FLOOR_Y := 545.0
 const ROUND_SECONDS := 60.0
 
@@ -114,60 +113,78 @@ func _build_arena() -> void:
 	camera.make_current()
 
 	var sky := ColorRect.new()
-	sky.color = Color(0.025, 0.025, 0.04)
+	sky.color = Color(0.13, 0.12, 0.105)
 	sky.size = Vector2(1280, 720)
 	add_child(sky)
 
-	for i in 11:
-		var stripe := ColorRect.new()
-		stripe.color = Color(0.025 + i * 0.006, 0.03 + i * 0.004, 0.055 + i * 0.012, 0.5)
-		stripe.position = Vector2(i * 128 - 80, 0)
-		stripe.size = Vector2(58, 720)
-		stripe.rotation = -0.18
-		add_child(stripe)
+	var back_wall := ColorRect.new()
+	back_wall.color = Color(0.23, 0.215, 0.185)
+	back_wall.position = Vector2(0, 0)
+	back_wall.size = Vector2(1280, 545)
+	add_child(back_wall)
+
+	for x in range(0, 1280, 160):
+		var panel_line := ColorRect.new()
+		panel_line.color = Color(0.11, 0.105, 0.095, 0.52)
+		panel_line.position = Vector2(x, 0)
+		panel_line.size = Vector2(3, 545)
+		add_child(panel_line)
+
+	for y in [132, 263, 394]:
+		var wall_line := ColorRect.new()
+		wall_line.color = Color(0.11, 0.105, 0.095, 0.45)
+		wall_line.position = Vector2(0, y)
+		wall_line.size = Vector2(1280, 3)
+		add_child(wall_line)
 
 	for side in [-1, 1]:
+		var banner := Polygon2D.new()
+		banner.polygon = PackedVector2Array([Vector2(-78, -86), Vector2(78, -86), Vector2(58, 92), Vector2(0, 128), Vector2(-58, 92)])
+		banner.color = Color(0.1, 0.095, 0.085) if side < 0 else Color(0.42, 0.08, 0.06)
+		banner.position = Vector2(240 if side < 0 else 1040, 205)
+		add_child(banner)
+
 		var light := Polygon2D.new()
-		light.polygon = PackedVector2Array([Vector2(-18, 0), Vector2(18, 0), Vector2(170 * side, 395), Vector2(-170 * side, 395)])
-		light.color = Color(1.0, 0.82, 0.25, 0.12)
-		light.position = Vector2(640 + side * 320, 58)
+		light.polygon = PackedVector2Array([Vector2(-28, 0), Vector2(28, 0), Vector2(190 * side, 440), Vector2(-190 * side, 440)])
+		light.color = Color(1.0, 0.78, 0.43, 0.16)
+		light.position = Vector2(640 + side * 245, 18)
 		add_child(light)
 
 	var screen := ColorRect.new()
-	screen.color = Color(0.005, 0.008, 0.016)
-	screen.position = Vector2(330, 105)
-	screen.size = Vector2(620, 110)
+	screen.color = Color(0.055, 0.05, 0.043)
+	screen.position = Vector2(365, 116)
+	screen.size = Vector2(550, 92)
 	add_child(screen)
 
-	var screen_text := _label("FIGHTY FIGHTY", 46, Vector2(330, 116), Vector2(620, 78), HORIZONTAL_ALIGNMENT_CENTER)
-	screen_text.add_theme_color_override("font_color", Color(1.0, 0.82, 0.2))
+	var screen_text := _label("BACKROOM BRAWL", 38, Vector2(365, 124), Vector2(550, 64), HORIZONTAL_ALIGNMENT_CENTER)
+	screen_text.add_theme_color_override("font_color", Color(0.94, 0.77, 0.45))
 	add_child(screen_text)
 
 	var floor := ColorRect.new()
-	floor.color = Color(0.075, 0.08, 0.09)
+	floor.color = Color(0.155, 0.145, 0.13)
 	floor.position = Vector2(0, 545)
 	floor.size = Vector2(1280, 175)
 	add_child(floor)
 
 	var stage_lip := ColorRect.new()
-	stage_lip.color = Color(1.0, 0.82, 0.25, 0.85)
+	stage_lip.color = Color(0.055, 0.05, 0.044)
 	stage_lip.position = Vector2(0, 538)
 	stage_lip.size = Vector2(1280, 7)
 	add_child(stage_lip)
 
-	for x in range(0, 1280, 80):
-		var line := Line2D.new()
-		line.width = 2
-		line.default_color = Color(0.0, 0.92, 1.0, 0.28)
-		line.points = PackedVector2Array([Vector2(x, 545), Vector2(x - 190, 720)])
-		add_child(line)
+	for x in range(-80, 1280, 120):
+		var floor_line := Line2D.new()
+		floor_line.width = 2
+		floor_line.default_color = Color(0.07, 0.065, 0.058, 0.48)
+		floor_line.points = PackedVector2Array([Vector2(x, 545), Vector2(x + 105, 720)])
+		add_child(floor_line)
 
-	for y in range(565, 720, 32):
-		var line := Line2D.new()
-		line.width = 2
-		line.default_color = Color(1.0, 0.18, 0.42, 0.22)
-		line.points = PackedVector2Array([Vector2(0, y), Vector2(1280, y)])
-		add_child(line)
+	for y in range(580, 720, 44):
+		var chalk := Line2D.new()
+		chalk.width = 3
+		chalk.default_color = Color(0.68, 0.63, 0.52, 0.18)
+		chalk.points = PackedVector2Array([Vector2(125, y), Vector2(1155, y - 18)])
+		add_child(chalk)
 
 
 func _build_fighters() -> void:
@@ -191,17 +208,8 @@ func _build_menu() -> void:
 	var panel := _panel(Vector2(390, 155), Vector2(500, 350))
 	menu_layer.add_child(panel)
 
-	var concept := TextureRect.new()
-	concept.texture = CONCEPT_TEXTURE
-	concept.position = Vector2(20, 18)
-	concept.size = Vector2(460, 122)
-	concept.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-	concept.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	concept.modulate = Color(1, 1, 1, 0.28)
-	panel.add_child(concept)
-
 	var title := _label("FIGHTY FIGHTY", 48, Vector2(0, 24), Vector2(500, 60), HORIZONTAL_ALIGNMENT_CENTER)
-	title.add_theme_color_override("font_color", Color(0.15, 0.9, 1.0))
+	title.add_theme_color_override("font_color", Color(0.94, 0.77, 0.45))
 	panel.add_child(title)
 
 	var sub := _label("Enter your fighter name", 22, Vector2(0, 100), Vector2(500, 34), HORIZONTAL_ALIGNMENT_CENTER)
@@ -236,23 +244,23 @@ func _build_fight_hud() -> void:
 	var cpu_label := _label("CPU BRUISER", 24, Vector2(920, 26), Vector2(310, 28), HORIZONTAL_ALIGNMENT_RIGHT)
 	fight_layer.add_child(cpu_label)
 
-	health_player = _bar(Vector2(48, 65), Vector2(430, 30), Color(0.0, 0.85, 1.0))
+	health_player = _bar(Vector2(48, 65), Vector2(430, 30), Color(0.86, 0.58, 0.22))
 	fight_layer.add_child(health_player)
-	health_cpu = _bar(Vector2(802, 65), Vector2(430, 30), Color(1.0, 0.18, 0.36))
+	health_cpu = _bar(Vector2(802, 65), Vector2(430, 30), Color(0.68, 0.12, 0.1))
 	fight_layer.add_child(health_cpu)
-	meter_player = _bar(Vector2(48, 104), Vector2(260, 18), Color(1.0, 0.82, 0.18))
+	meter_player = _bar(Vector2(48, 104), Vector2(260, 18), Color(0.94, 0.77, 0.45))
 	meter_player.max_value = 100
 	fight_layer.add_child(meter_player)
 
 	timer_label = _label("60", 42, Vector2(588, 48), Vector2(104, 52), HORIZONTAL_ALIGNMENT_CENTER)
-	timer_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.18))
+	timer_label.add_theme_color_override("font_color", Color(0.94, 0.77, 0.45))
 	fight_layer.add_child(timer_label)
 
 	round_label = _label("ROUND 1    0 - 0", 20, Vector2(490, 102), Vector2(300, 28), HORIZONTAL_ALIGNMENT_CENTER)
 	fight_layer.add_child(round_label)
 
 	combo_label = _label("", 34, Vector2(70, 170), Vector2(280, 50), HORIZONTAL_ALIGNMENT_LEFT)
-	combo_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.18))
+	combo_label.add_theme_color_override("font_color", Color(0.94, 0.77, 0.45))
 	fight_layer.add_child(combo_label)
 
 	status_label = _label("", 18, Vector2(370, 645), Vector2(540, 32), HORIZONTAL_ALIGNMENT_CENTER)
@@ -399,8 +407,8 @@ func _panel(pos: Vector2, size: Vector2) -> Panel:
 	panel.position = pos
 	panel.size = size
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.025, 0.03, 0.055, 0.94)
-	style.border_color = Color(0.0, 0.86, 1.0, 0.8)
+	style.bg_color = Color(0.09, 0.082, 0.068, 0.95)
+	style.border_color = Color(0.94, 0.77, 0.45, 0.82)
 	style.set_border_width_all(2)
 	style.corner_radius_top_left = 8
 	style.corner_radius_top_right = 8
@@ -418,7 +426,7 @@ func _label(text: String, size: int, pos: Vector2, node_size: Vector2, align: Ho
 	label.horizontal_alignment = align
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", size)
-	label.add_theme_color_override("font_color", Color(0.94, 0.96, 1.0))
+	label.add_theme_color_override("font_color", Color(0.96, 0.92, 0.84))
 	return label
 
 
@@ -430,7 +438,7 @@ func _bar(pos: Vector2, node_size: Vector2, fill: Color) -> ProgressBar:
 	bar.value = 100
 	bar.show_percentage = false
 	var bg := StyleBoxFlat.new()
-	bg.bg_color = Color(0.01, 0.01, 0.018, 0.92)
+	bg.bg_color = Color(0.055, 0.05, 0.044, 0.95)
 	bg.set_border_width_all(1)
 	bg.border_color = Color(1, 1, 1, 0.22)
 	var fg := StyleBoxFlat.new()
